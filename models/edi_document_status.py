@@ -74,11 +74,11 @@ class EdiDocumentStatus(models.Model):
                 bi.invoice_number AS document_number,
                 bi.date_invoice AS document_date,
                 rp.name AS partner_name,
-                CASE bi.irs_id_code
-                    WHEN '01' THEN 'Factura'
-                    WHEN '04' THEN 'Nota de Crédito'
-                    WHEN '05' THEN 'Nota de Débito'
-                    ELSE 'Otro (' || COALESCE(bi.irs_id_code, '?') || ')'
+                CASE
+                    WHEN bi.irs_id_code = '01' AND bi.type = 'out_invoice' THEN 'Factura'
+                    WHEN bi.irs_id_code = '04' AND bi.type = 'out_refund'  THEN 'Nota de Crédito'
+                    WHEN bi.irs_id_code = '05' AND bi.type = 'out_invoice' THEN 'Nota de Débito'
+                    ELSE 'Otro (irs_id_code=' || COALESCE(bi.irs_id_code, '?') || ', type=' || COALESCE(bi.type, '?') || ')'
                 END AS tipo_documento,
                 bi.state AS business_state,
                 bi.state_ce AS state_ce,
@@ -86,7 +86,9 @@ class EdiDocumentStatus(models.Model):
                 bi.validation_info AS validation_info
             FROM bl_invoice bi
             LEFT JOIN res_partner rp ON rp.id = bi.partner_id
+            LEFT JOIN account_journal aj ON aj.id = bi.journal_id
             WHERE bi.proform = 'FC' AND bi.state_ce IS NOT NULL
+                AND (aj.code IS NULL OR aj.code != '099-099')
         """
 
     def _select_account_retention(self):
