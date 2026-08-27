@@ -19,10 +19,14 @@ No modifica el flujo de emisión/firma existente.
     """,
     'author': 'Jonathan',
     'license': 'LGPL-3',
+    # OJO: no se declara depends duro de oly_base_billing / oly_journal / oly_asset.
+    # No siempre conviven en la misma base de datos (clientes tipo GAD: sí;
+    # clientes con bases separadas "comercial"/"financiera" como EMSABA: no).
+    # La vista SQL detecta en tiempo de instalación/actualización, vía
+    # ir.module.module, cuáles de los tres módulos fuente están realmente
+    # instalados en ESTA base, y arma el UNION ALL solo con esas tablas.
     'depends': [
-        'oly_base_billing',
-        'account_journal',
-        'oly_asset',
+        'base',
     ],
     'data': [
         # 'security/ir.model.access.csv',

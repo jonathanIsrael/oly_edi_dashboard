@@ -12,7 +12,25 @@ acceso a esa funcionalidad en su forma estándar.
 
 - Solo lectura. No modifica el flujo existente de firma/envío al SRI.
 - Cubre `bl.invoice` (módulo `oly_base_billing`), `account.retention`
-  (módulo `account_journal`) y `remission.guide.sri` (módulo `oly_asset`).
+  (módulo `oly_journal`) y `remission.guide.sri` (módulo `oly_asset`).
+
+## Topología de bases de datos (importante)
+
+No todos los clientes tienen los tres módulos fuente en la misma base de
+datos:
+
+- Clientes tipo GAD (ej. GADPA): un solo Odoo con todo instalado junto.
+- Clientes de servicios (ej. EMSABA): dos bases *separadas* — una
+  "comercial"/recaudación (`oly_base_billing`) y otra "financiera"
+  (`oly_journal`, `oly_asset`). Son bases Postgres distintas, no solo
+  módulos distintos — un `UNION ALL` entre ellas no es posible sin algo
+  como `postgres_fdw`.
+
+Por eso el módulo **no declara depends duro** de los tres módulos fuente
+(ver `__manifest__.py`). La vista SQL debe verificar en `ir.module.module`
+cuáles de los tres están instalados en la base actual y armar el
+`UNION ALL` solo con esas tablas. El tablero, entonces, muestra lo que esa
+base de datos puede ver — igual que cualquier otro módulo de Odoo.
 
 ## Fases
 
