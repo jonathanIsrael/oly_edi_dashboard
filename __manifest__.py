@@ -29,7 +29,7 @@ No modifica el flujo de emisión/firma existente.
         'base',
     ],
     'data': [
-        # 'security/ir.model.access.csv',
+        'security/ir.model.access.csv',
         # 'views/edi_dashboard_views.xml',
     ],
     'installable': True,
