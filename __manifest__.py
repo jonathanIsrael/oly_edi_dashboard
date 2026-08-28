@@ -30,7 +30,8 @@ No modifica el flujo de emisión/firma existente.
     ],
     'data': [
         'security/ir.model.access.csv',
-        # 'views/edi_dashboard_views.xml',
+        'data/ir_config_parameter.xml',
+        'views/edi_dashboard_views.xml',
     ],
     'installable': True,
     'application': False,

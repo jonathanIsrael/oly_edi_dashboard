@@ -53,6 +53,8 @@ class EdiDocumentStatus(models.Model):
         ('autorizado', 'Autorizado'),
         ('pendiente', 'Pendiente'),
         ('rechazado', 'Rechazado / Inconsistencia'),
+        ('enviado_sin_autorizar', 'Enviado sin autorizar'),
+        ('anulado', 'Anulado'),
         ('otro', 'Otro'),
     ], string='Categoría', readonly=True)
 
@@ -65,7 +67,31 @@ class EdiDocumentStatus(models.Model):
         ]).mapped('name')
         return set(modules)
 
+    def _get_excluded_journal_codes(self):
+        """
+        Diarios a excluir de la vista, configurados por base de datos.
+
+        No es una regla de negocio universal: es un hallazgo de
+        calidad de datos específico de cada cliente (diarios de migración
+        o carga masiva mal etiquetados). Cada instalación decide su propia
+        lista vía parameter, en vez de que el módulo la asuma para
+        todos los clientes.
+
+        Vacío por defecto: un cliente nuevo no pierde ningún documento
+        hasta que alguien audite su data real y configure explícitamente.
+        """
+        param = self.env['ir.config_parameter'].sudo().get_param(
+            'oly_edi_dashboard.excluded_journal_codes', ''
+        )
+        return [c.strip() for c in param.split(',') if c.strip()]
+
     def _select_bl_invoice(self):
+        excluded = self._get_excluded_journal_codes()
+        journal_filter = ""
+        if excluded:
+            codes = ", ".join("'%s'" % c.replace("'", "''") for c in excluded)
+            journal_filter = "AND (aj.code IS NULL OR aj.code NOT IN (%s))" % codes
+
         return """
             SELECT
                 bi.id AS id,
@@ -88,8 +114,8 @@ class EdiDocumentStatus(models.Model):
             LEFT JOIN res_partner rp ON rp.id = bi.partner_id
             LEFT JOIN account_journal aj ON aj.id = bi.journal_id
             WHERE bi.proform = 'FC' AND bi.state_ce IS NOT NULL
-                AND (aj.code IS NULL OR aj.code != '099-099')
-        """
+                %s
+        """ % journal_filter
 
     def _select_account_retention(self):
         return """
@@ -163,6 +189,31 @@ class EdiDocumentStatus(models.Model):
 
         union_sql = " UNION ALL ".join(branches)
 
+        sql = ("""SELECT
+                    src.*,
+                    CASE
+                        WHEN src.state_ce IN ('3', '4')
+                             AND src.authorization_ce IS NOT NULL
+                             AND src.authorization_ce != ''
+                            THEN 'autorizado'
+                        WHEN src.business_state = 'approved'
+                             AND src.state_ce = '4'
+                             AND (src.authorization_ce IS NULL OR src.authorization_ce = '')
+                            THEN 'enviado_sin_autorizar'
+                        WHEN src.business_state = 'approved'
+                             AND (src.state_ce IS NULL OR src.state_ce NOT IN ('3', '4'))
+                             AND src.validation_info LIKE 'Tipo de Error:%%'
+                            THEN 'rechazado'
+                        WHEN src.business_state = 'approved'
+                             AND (src.state_ce IS NULL OR src.state_ce NOT IN ('3', '4'))
+                            THEN 'pendiente'
+                        WHEN src.business_state = 'cancel'
+                            THEN 'anulado'
+                        ELSE 'otro'
+                    END AS categoria
+                FROM (%s) src""") % union_sql
+        print(sql)
+
         self._cr.execute("""
             CREATE OR REPLACE VIEW %s AS (
                 SELECT
@@ -173,12 +224,18 @@ class EdiDocumentStatus(models.Model):
                              AND src.authorization_ce != ''
                             THEN 'autorizado'
                         WHEN src.business_state = 'approved'
+                             AND src.state_ce = '4'
+                             AND (src.authorization_ce IS NULL OR src.authorization_ce = '')
+                            THEN 'enviado_sin_autorizar'
+                        WHEN src.business_state = 'approved'
                              AND (src.state_ce IS NULL OR src.state_ce NOT IN ('3', '4'))
                              AND src.validation_info LIKE 'Tipo de Error:%%'
                             THEN 'rechazado'
                         WHEN src.business_state = 'approved'
                              AND (src.state_ce IS NULL OR src.state_ce NOT IN ('3', '4'))
                             THEN 'pendiente'
+                        WHEN src.business_state = 'cancel'
+                            THEN 'anulado'
                         ELSE 'otro'
                     END AS categoria
                 FROM (%s) src

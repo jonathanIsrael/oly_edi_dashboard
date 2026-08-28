@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="param_excluded_journal_codes" model="ir.config_parameter">
+            <field name="key">oly_edi_dashboard.excluded_journal_codes</field>
+            <field name="value">FC 099-099,FC 001-001</field>
+        </record>
+    </data>
+</odoo>

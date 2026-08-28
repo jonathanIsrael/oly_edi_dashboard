@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_edi_document_status_tree" model="ir.ui.view">
+        <field name="name">edi.document.status.tree</field>
+        <field name="model">edi.document.status</field>
+        <field name="arch" type="xml">
+            <tree string="Documentos Electrónicos SRI"
+                  create="false" edit="false" delete="false"
+                  decoration-success="categoria == 'autorizado'"
+                  decoration-warning="categoria == 'pendiente'"
+                  decoration-danger="categoria == 'rechazado'"
+                  decoration-muted="categoria == 'otro'">
+                <field name="document_date"/>
+                <field name="document_number"/>
+                <field name="partner_name"/>
+                <field name="tipo_documento"/>
+                <field name="res_model"/>
+                <field name="state_ce"/>
+                <field name="authorization_ce"/>
+                <field name="categoria"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_edi_document_status_kanban" model="ir.ui.view">
+        <field name="name">edi.document.status.kanban</field>
+        <field name="model">edi.document.status</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_small_column" default_group_by="categoria" quick_create="false">
+                <field name="document_number"/>
+                <field name="partner_name"/>
+                <field name="tipo_documento"/>
+                <field name="document_date"/>
+                <field name="categoria"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div t-attf-class="oe_kanban_card p-2 border-start border-4 #{record.categoria.raw_value == 'autorizado' ? 'border-success' : record.categoria.raw_value == 'pendiente' ? 'border-warning' : record.categoria.raw_value == 'rechazado' ? 'border-danger' : 'border-secondary'}">
+                            <strong><field name="document_number"/></strong>
+                            <div><field name="partner_name"/></div>
+                            <div class="text-muted small">
+                                <field name="tipo_documento"/> — <field name="document_date"/>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="view_edi_document_status_graph" model="ir.ui.view">
+        <field name="name">edi.document.status.graph</field>
+        <field name="model">edi.document.status</field>
+        <field name="arch" type="xml">
+            <graph string="Documentos Electrónicos SRI" type="pie">
+                <field name="categoria"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_edi_document_status_pivot" model="ir.ui.view">
+        <field name="name">edi.document.status.pivot</field>
+        <field name="model">edi.document.status</field>
+        <field name="arch" type="xml">
+            <pivot string="Documentos Electrónicos SRI">
+                <field name="categoria" type="row"/>
+                <field name="tipo_documento" type="row"/>
+                <field name="res_model" type="col"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_edi_document_status_search" model="ir.ui.view">
+        <field name="name">edi.document.status.search</field>
+        <field name="model">edi.document.status</field>
+        <field name="arch" type="xml">
+            <search string="Buscar Documentos Electrónicos SRI">
+                <field name="document_number"/>
+                <field name="partner_name"/>
+                <field name="authorization_ce"/>
+                <separator/>
+                <filter string="Requiere Atención" name="filter_requiere_atencion"
+                        domain="[('categoria', '!=', 'autorizado')]"/>
+                <filter string="Autorizado" name="filter_autorizado"
+                        domain="[('categoria', '=', 'autorizado')]"/>
+                <filter string="Pendiente" name="filter_pendiente"
+                        domain="[('categoria', '=', 'pendiente')]"/>
+                <filter string="Rechazado / Inconsistencia" name="filter_rechazado"
+                        domain="[('categoria', '=', 'rechazado')]"/>
+                <filter string="Otro" name="filter_otro"
+                        domain="[('categoria', '=', 'otro')]"/>
+                <separator/>
+                <filter string="Facturas / NC / ND" name="filter_bl_invoice"
+                        domain="[('res_model', '=', 'bl.invoice')]"/>
+                <filter string="Retenciones" name="filter_retention"
+                        domain="[('res_model', '=', 'account.retention')]"/>
+                <filter string="Guías de Remisión" name="filter_guide"
+                        domain="[('res_model', '=', 'remission.guide.sri')]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter string="Categoría" name="group_categoria"
+                            context="{'group_by': 'categoria'}"/>
+                    <filter string="Tipo de documento" name="group_tipo"
+                            context="{'group_by': 'tipo_documento'}"/>
+                    <filter string="Modelo origen" name="group_res_model"
+                            context="{'group_by': 'res_model'}"/>
+                    <filter string="Cliente" name="group_partner"
+                            context="{'group_by': 'partner_name'}"/>
+                    <filter string="Fecha" name="group_date"
+                            context="{'group_by': 'document_date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_edi_document_status" model="ir.actions.act_window">
+        <field name="name">Tablero EDI - Documentos Electrónicos SRI</field>
+        <field name="res_model">edi.document.status</field>
+        <field name="view_mode">kanban,tree,form,graph,pivot</field>
+        <field name="search_view_id" ref="view_edi_document_status_search"/>
+        <field name="context">{'search_default_filter_requiere_atencion': 1, 'search_default_group_categoria': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No hay documentos electrónicos para mostrar.
+            </p>
+            <p>
+                Este tablero es de solo lectura y consulta directamente el estado
+                real de facturas, retenciones y guías de remisión en el SRI.
+            </p>
+        </field>
+    </record>
+
+    <record id="view_edi_document_status_form" model="ir.ui.view">
+        <field name="name">edi.document.status.form</field>
+        <field name="model">edi.document.status</field>
+        <field name="arch" type="xml">
+            <form string="Documento Electrónico SRI" create="false" edit="false" delete="false">
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="document_number"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="tipo_documento"/>
+                            <field name="partner_name"/>
+                            <field name="document_date"/>
+                            <field name="res_model"/>
+                        </group>
+                        <group>
+                            <field name="categoria"/>
+                            <field name="business_state"/>
+                            <field name="state_ce"/>
+                            <field name="authorization_ce"/>
+                        </group>
+                    </group>
+                    <group string="Información de validación">
+                        <field name="validation_info" nolabel="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <menuitem id="menu_edi_dashboard_root"
+              name="Tablero EDI"
+              sequence="50"/>
+
+    <menuitem id="menu_edi_dashboard_main"
+              name="Documentos Electrónicos SRI"
+              parent="menu_edi_dashboard_root"
+              action="action_edi_document_status"
+              sequence="10"/>
+</odoo>
