@@ -117,7 +117,17 @@ class EdiDocumentStatus(models.Model):
                 %s
         """ % journal_filter
 
-    def _select_account_retention(self):
+    def _select_account_retention(self, installed):
+        if 'oly_base_billing' in installed:
+            partner_field = "rp.name AS partner_name,"
+            partner_join = """
+                LEFT JOIN bl_invoice bi ON bi.id = ar.invoice_id
+                LEFT JOIN res_partner rp ON rp.id = bi.partner_id
+            """
+        else:
+            partner_field = "NULL::varchar AS partner_name,"
+            partner_join = ""
+
         return """
             SELECT
                 (ar.id + 1000000000) AS id,
@@ -125,16 +135,16 @@ class EdiDocumentStatus(models.Model):
                 ar.id AS res_id,
                 ar.retention_number AS document_number,
                 ar.date AS document_date,
-                rp.name AS partner_name,
+                %s
                 'Retención' AS tipo_documento,
                 ar.state AS business_state,
                 ar.state_ce AS state_ce,
                 ar.authorization_ce AS authorization_ce,
                 ar.validation_info AS validation_info
             FROM account_retention ar
-            LEFT JOIN res_partner rp ON rp.id = ar.partner_id
+            %s
             WHERE ar.state_ce IS NOT NULL
-        """
+        """ % (partner_field, partner_join)
 
     def _select_remission_guide(self):
         return """
@@ -181,7 +191,7 @@ class EdiDocumentStatus(models.Model):
         if 'oly_base_billing' in installed:
             branches.append(self._select_bl_invoice())
         if 'oly_journal' in installed:
-            branches.append(self._select_account_retention())
+            branches.append(self._select_account_retention(installed))
         if 'oly_asset' in installed:
             branches.append(self._select_remission_guide())
         if not branches:
@@ -212,7 +222,7 @@ class EdiDocumentStatus(models.Model):
                         ELSE 'otro'
                     END AS categoria
                 FROM (%s) src""") % union_sql
-        print(sql)
+        # print(sql)
 
         self._cr.execute("""
             CREATE OR REPLACE VIEW %s AS (

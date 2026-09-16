@@ -31,9 +31,16 @@ No modifica el flujo de emisión/firma existente.
     'data': [
         'security/edi_dashboard_security.xml',
         'security/ir.model.access.csv',
-        'data/ir_config_parameter.xml',
+        #'data/ir_config_parameter.xml',
         'views/edi_dashboard_views.xml',
     ],
+    'assets': {
+        'web.assets_backend': [
+            'oly_edi_dashboard/static/src/js/hola_mundo.js',
+    #         'oly_edi_dashboard/static/src/js/systray_item.js',
+    #         'oly_edi_dashboard/static/src/xml/hola_mundo.xml',
+        ],
+    },
     'installable': True,
     'application': False,
     'auto_install': False,

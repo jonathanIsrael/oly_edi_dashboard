@@ -1,0 +1,8 @@
+<templates xml:space="preserve">
+    <t t-name="oly_edi_dashboard.HolaMundo">
+        <div class="hola-mundo">
+            <p>Contador: <t t-esc="state.contador"/></p>
+            <button t-on-click="incrementar">Sumar uno</button>
+        </div>
+    </t>
+</templates>
